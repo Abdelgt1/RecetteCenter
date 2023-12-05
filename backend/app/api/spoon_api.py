@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from httpx import AsyncClient
 from typing import List
@@ -6,13 +6,14 @@ from ..schemas.schemas import UserRead, FavoriteRecipeCreate, FavoriteRecipeRead
 from ..models.models import FavoriteRecipe, User
 from ..db.database import get_db
 from ..auth.token import  verify_token
+from decouple import config
+
 
 router = APIRouter()
 
-spoonacular_api_key = "05bf1a8fcf0e4d6f8f8222e921eecf0a"
 
-
-spoonacular_base_url = "https://api.spoonacular.com"
+spoonacular_api_key = config('SP_Key')
+spoonacular_base_url = config('Sp_url')
 
 async def get_spoonacular_client():
     async with AsyncClient() as client:
@@ -47,18 +48,18 @@ async def search_recipes_by_ingredients(
 @router.post("/recipes/favorite", response_model=FavoriteRecipeRead)
 async def save_recipe_as_favorite(
     favorite_recipe: FavoriteRecipeCreate,
-    token: str,
+    authorization: str = Header(...),
     session: Session = Depends(get_db),
 ):
-   
+    
+    token = authorization.replace("Bearer ", "")
+
     user = get_user_from_token(token, session)
 
- 
     existing_favorite = session.query(FavoriteRecipe).filter_by(user_id=user.id, recipe_id=favorite_recipe.recipe_id).first()
     if existing_favorite:
         raise HTTPException(status_code=400, detail="Recipe already saved as favorite")
 
-    
     new_favorite = FavoriteRecipe(**favorite_recipe.dict(), user_id=user.id)
     session.add(new_favorite)
     session.commit()
@@ -68,13 +69,14 @@ async def save_recipe_as_favorite(
 
 @router.get("/recipes/favorite", response_model=List[FavoriteRecipeRead])
 async def get_favorite_recipes(
-    token: str,
+    authorization: str = Header(...),
     session: Session = Depends(get_db),
 ):
     
+    token = authorization.replace("Bearer ", "")
+    
     user = get_user_from_token(token, session)
 
-    
     favorite_recipes = session.query(FavoriteRecipe).filter_by(user_id=user.id).all()
 
     return favorite_recipes
@@ -99,14 +101,11 @@ async def search_recipes_by_nutrients(
 async def search_recipes_complex(
     query: str,
     max_fat: float,
-    token: str,
     number: int = 5,
     session: Session = Depends(get_db),
     client: AsyncClient = Depends(get_spoonacular_client),
 ):
    
-    user = get_user_from_token(token, session)
-
     try:
       
         response = await client.get(
@@ -122,3 +121,39 @@ async def search_recipes_complex(
     except Exception as e:
       
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/recipes/{recipe_id}/information", response_model=dict)
+async def get_recipe_information(
+    recipe_id: int,
+    client: AsyncClient = Depends(get_spoonacular_client),
+):
+    try:
+        response = await client.get(
+            f"{spoonacular_base_url}/recipes/{recipe_id}/information",
+            params={"apiKey": spoonacular_api_key},
+        )
+        response.raise_for_status()
+
+        recipe_info = response.json()
+       
+        result = {
+            "name": recipe_info.get("title", ""),
+            "image": recipe_info.get("image", ""),
+            "steps": []  
+        }
+
+        
+        if recipe_info.get("analyzedInstructions"):
+            
+            steps = [
+                {"number": step["number"], "step": step["step"]}
+                for instruction in recipe_info["analyzedInstructions"]
+                for step in instruction.get("steps", [])
+            ]
+            result["steps"] = steps
+
+        return result
+
+    except HTTPException as e:
+        raise e

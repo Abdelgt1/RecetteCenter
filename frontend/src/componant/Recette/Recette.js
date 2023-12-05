@@ -1,47 +1,61 @@
 import React, { useState, useEffect } from 'react';
+import { Heading, Box, List, ListItem } from '@chakra-ui/react';
 
 export default function Recette() {
-    const [recipeTitle, setRecipeTitle] = useState('');
-    const [recipeImage, setRecipeImage] = useState('');
-    const [recipeSteps, setRecipeSteps] = useState('');
-  
-    useEffect(() => {
-      const fetchData = async () => {
-        // Récupérer l'ID de la recette à partir de l'URL
-        const currentUrl = window.location.href;
-        const urlParts = currentUrl.split('/');
-        const idIndex = urlParts.indexOf('recette') + 1;
-        const recipeId = urlParts[idIndex];
-        // Remplacez par votre propre clé API
-        const apiKey = "78714e21c5a546948b11ca94b37950d9";
-  
-        const url = `https://api.spoonacular.com/recipes/${recipeId}/information?apiKey=${apiKey}`;
-  
-        try {
-          const response = await fetch(url);
-          const recipe = await response.json();
-  
-          setRecipeTitle(recipe.title);
-  
-          const imageHtml = `<img src="${recipe.image}" alt="${recipe.title}">`;
-          setRecipeImage(imageHtml);
-  
-          const stepsHtml = recipe.analyzedInstructions[0].steps.map(step => `<li key=${step.number}>${step.step}</li>`).join("");
+  const [recipeTitle, setRecipeTitle] = useState('');
+  const [recipeImage, setRecipeImage] = useState('');
+  const [recipeSteps, setRecipeSteps] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const currentUrl = window.location.href;
+      const urlParts = currentUrl.split('/');
+      const idIndex = urlParts.indexOf('recette') + 1;
+      const recipeId = urlParts[idIndex];
+
+      const apiUrl = `http://localhost:8000/recipes/${recipeId}/information`;
+
+      try {
+        const response = await fetch(apiUrl);
+        const recipe = await response.json();
+
+        console.log('Recipe from server:', recipe);
+
+        setRecipeTitle(recipe.name);
+
+     
+        setRecipeImage(`<img src="${recipe.image}" alt="${recipe.name}" />`);
+
+       
+        if (recipe.steps && Array.isArray(recipe.steps)) {
+          const stepsHtml = recipe.steps.map((step) => (
+            <ListItem key={step.number}>
+              <strong>Step {step.number}:</strong> {step.step}
+            </ListItem>
+          ));
           setRecipeSteps(stepsHtml);
-        } catch (error) {
-          console.error("Error fetching recipe details:", error);
-          setRecipeTitle("Erreur lors du chargement des détails de la recette.");
+        } else {
+          console.error('Recipe steps is not an array or is undefined.');
+          setRecipeSteps([]);
         }
-      };
-  
-      fetchData();
-    }, []);
-  
-    return (
-      <div>
-        <h1 id="recipe-title">{recipeTitle}</h1>
-        <div id="recipe-image" dangerouslySetInnerHTML={{ __html: recipeImage }} />
-        <ul id="recipe-steps" dangerouslySetInnerHTML={{ __html: recipeSteps }} />
-      </div>
-    );
+      } catch (error) {
+        console.error('Error fetching recipe details:', error);
+        setRecipeTitle("Erreur lors du chargement des détails de la recette.");
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  return (
+    <Box>
+      <Heading as="h1" id="recipe-title">
+        {recipeTitle}
+      </Heading>
+     
+      <Box id="recipe-image" dangerouslySetInnerHTML={{ __html: recipeImage }} />
+      
+      <List id="recipe-steps">{recipeSteps}</List>
+    </Box>
+  );
 }

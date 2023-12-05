@@ -1,14 +1,13 @@
-# Première étape: Construire l'application React
-FROM node:alpine
+FROM node:14
 
-WORKDIR '/app'
+WORKDIR /usr/src/app
 
-COPY package.json .
+COPY package*.json ./
 
 RUN npm install
 
 COPY . .
 
-CMD ["npm", "start"]
+EXPOSE 3000
 
-EXPOSE 3000 
+CMD ["npm", "start"]
