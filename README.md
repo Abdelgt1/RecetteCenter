@@ -27,6 +27,6 @@ Suivez ces instructions pour obtenir une copie du projet opérationnelle sur vot
 ### Projet réalisé par 
 - Karim AIT ALI OUBARI 
 - Achraf BOUA
-- GHATGHUT Abdelraouf
+- Abdelraouf GHATGHUT
 
 
