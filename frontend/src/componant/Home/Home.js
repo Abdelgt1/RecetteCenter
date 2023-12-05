@@ -73,6 +73,7 @@ const Home = () => {
     }
   };
 
+  
   const searchRecipes = async () => {
     setLoading(true);
 
@@ -98,7 +99,7 @@ const Home = () => {
 
       if (response.ok) {
         const recipes = await response.json();
-        console.log('Complex Search Response:', recipes);
+        console.log('Complex Search Response:', recipes); 
         setLoading(false);
         setRecipes(recipes);
       } else {
@@ -112,6 +113,7 @@ const Home = () => {
       setRecipes([]);
     }
   };
+
 
   const renderSearchBar = () => {
     if (isLoggedIn) {
@@ -187,12 +189,37 @@ const Home = () => {
             <Text className="search-format" marginTop="2">
               Expected format: ingredient1, ingredient2, ingredient3
             </Text>
-
+            
             <Box id="recipes" marginTop="4">
               {loading && <Text>Searching for recipes...</Text>}
-              {!loading && recipes.results && recipes.results.length === 0 && (
+              {!loading && recipes.length === 0 && (
                 <Text>No recipes found. Try with different ingredients.</Text>
               )}
+              {!loading && recipes.length > 0 && (
+                recipes.map((recipe) => (
+                  <Box key={recipe.id} className="recipe-card" marginTop="4">
+                    <a href={`/recette/${recipe.id}`}>
+                      <img src={recipe.image} alt={recipe.title} />
+                    </a>
+                    <Text fontSize="xl">{recipe.title}</Text>
+                    {recipe.nutrition && recipe.nutrition.nutrients && (
+                      <Box>
+                        {recipe.nutrition.nutrients.map((nutrient) => (
+                          <Text key={nutrient.name}>
+                            {nutrient.name}: {nutrient.amount} {nutrient.unit}
+                          </Text>
+                        ))}
+                      </Box>
+                    )}
+                    {isLoggedIn && (
+                      <Button onClick={() => handleSaveFavorite(recipe.id)} colorScheme="red" marginTop="2">
+                        Save as Favorite
+                      </Button>
+                    )}
+                  </Box>
+                ))
+              )}
+
               {!loading && recipes.results && recipes.results.length > 0 && (
                 recipes.results.map((recipe) => (
                   <Box key={recipe.id} className="recipe-card" marginTop="4">
@@ -218,7 +245,6 @@ const Home = () => {
                 ))
               )}
             </Box>
-
             <ToastContainer />
           </div>
         </Box>
