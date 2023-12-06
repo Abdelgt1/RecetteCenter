@@ -66,12 +66,12 @@ L'application de recherche de recettes est une application web qui permet aux ut
 
 2. Construisez l'image Docker :
     ```bash
-    docker build -t nom-utilisateur/backend .
+    docker build -t nom-utilisateur/nom-projet-backend .
     ```
 
 3. Exécutez le conteneur Docker :
     ```bash
-    docker run -p 8000:8000 nom-utilisateur/ackend
+    docker run -p 8000:8000 nom-utilisateur/nom-projet-backend
     ```
 
 ### Frontend
